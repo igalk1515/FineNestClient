@@ -1,0 +1,235 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { getOrCreateUID } from '../../utils/uid';
+import axios from 'axios';
+
+export default function UploadScreen() {
+  const [uid, setUid] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    console.log('📲 HomeScreen mounted');
+
+    getOrCreateUID()
+      .then((generatedUid) => {
+        console.log('✅ UID successfully retrieved or created:', generatedUid);
+        setUid(generatedUid);
+      })
+      .catch((err) => {
+        console.error('❌ Error getting UID:', err);
+      });
+  }, []);
+
+  const uploadImages = async () => {
+    if (!uid || images.length === 0) {
+      Alert.alert('חסרים נתונים', 'אין UID או תמונות לשליחה');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('uid', uid);
+
+    images.forEach((uri, index) => {
+      formData.append('receipt', {
+        uri,
+        type: 'image/jpeg',
+        name: `receipt_${index}.jpg`,
+      } as any); // <— TypeScript workaround
+    });
+
+    try {
+      const res = await axios.post(
+        'http://192.168.1.105:8000/api/receipt/',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
+      debugger;
+      console.log('✅ Upload success:', res.data);
+      Alert.alert('הצלחה', `העלאה ה!!!!צליחה! ${res.data.files?.length || ''}`);
+      setImages([]); // clear images after upload
+    } catch (err) {
+      console.error('❌ Upload failed:', err);
+      Alert.alert('שגיאה', 'שליחה נכשלה');
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Camera permission denied');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setImages((prevImages) => [...prevImages, result.assets[0].uri]);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Gallery permission denied');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      quality: 0.7,
+      allowsMultipleSelection: true,
+    });
+
+    if (!result.canceled) {
+      const newImages = result.assets.map((asset) => asset.uri);
+      setImages((prevImages) => [...prevImages, ...newImages]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
+  };
+
+  return (
+    <View style={styles.container}>
+      {images.length > 0 && (
+        <TouchableOpacity style={styles.button} onPress={uploadImages}>
+          <Text style={styles.buttonText}>🚀 שלח תמונות</Text>
+        </TouchableOpacity>
+      )}
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.imageGrid}>
+          {images.map((uri, index) => (
+            <View key={index} style={styles.imageContainer}>
+              <Image source={{ uri }} style={styles.image} />
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => removeImage(index)}
+              >
+                <Text style={styles.buttonText}>❌</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      <View
+        style={[
+          styles.buttonContainer,
+          images.length === 0
+            ? styles.buttonContainerCenter
+            : styles.buttonContainerBottom,
+          images.length > 0 && styles.buttonContainerRow,
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.button, images.length === 0 && styles.bigButton]}
+          onPress={takePhoto}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              images.length === 0 && styles.bigButtonText,
+            ]}
+          >
+            📸 פתח מצלמה
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, images.length === 0 && styles.bigButton]}
+          onPress={pickImage}
+        >
+          <Text
+            style={[
+              styles.buttonText,
+              images.length === 0 && styles.bigButtonText,
+            ]}
+          >
+            🖼️ בחר מהגלריה
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    width: '100%',
+    position: 'absolute',
+    gap: 20,
+  },
+  buttonContainerCenter: {
+    top: '50%',
+    transform: [{ translateY: -25 }],
+  },
+  buttonContainerBottom: {
+    bottom: 20, // Changed from 200 to 20 to be closer to bottom
+    backgroundColor: 'white', // Added to ensure buttons are visible
+    paddingVertical: 10, // Added padding for better appearance
+  },
+  buttonContainerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around', // Changed from space-between for better spacing
+    width: '100%',
+  },
+  bigButtonText: {
+    fontSize: 24,
+    padding: 10,
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: 20,
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+  },
+  imageContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  image: {
+    width: 150,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    padding: 10,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  bigButton: {
+    minWidth: 200,
+    padding: 20,
+    marginVertical: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+});
