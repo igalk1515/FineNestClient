@@ -1,24 +1,24 @@
 // This file is a fallback for using MaterialIcons on Android and web.
-
+import Foundation from '@expo/vector-icons/Foundation';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 import { SymbolWeight } from 'expo-symbols';
 import React from 'react';
 import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
-
 // Add your SFSymbol to MaterialIcons mappings here.
 const MAPPING = {
-  // See MaterialIcons here: https://icons.expo.fyi
-  // See SF Symbols in the SF Symbols app on Mac.
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-} as Partial<
-  Record<
-    import('expo-symbols').SymbolViewProps['name'],
-    React.ComponentProps<typeof MaterialIcons>['name']
-  >
->;
+  'house.fill': { library: 'MaterialIcons', name: 'home' },
+  'paperplane.fill': { library: 'MaterialIcons', name: 'send' },
+  'chevron.left.forwardslash.chevron.right': {
+    library: 'MaterialIcons',
+    name: 'code',
+  },
+  'chevron.right': { library: 'MaterialIcons', name: 'chevron-right' },
+  'graph-pie': { library: 'Foundation', name: 'graph-pie' },
+  camera: { library: 'Foundation', name: 'camera' },
+  'receipt-outline': { library: 'Ionicons', name: 'receipt-outline' },
+} as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
 
@@ -33,11 +33,40 @@ export function IconSymbol({
   color,
   style,
 }: {
-  name: IconSymbolName;
+  name: keyof typeof MAPPING;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
-  weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconMapping = MAPPING[name];
+
+  if (!iconMapping) {
+    console.error(`Icon "${name}" is not mapped.`);
+    return null;
+  }
+
+  const { library, name: iconName } = iconMapping;
+
+  switch (library) {
+    case 'MaterialIcons':
+      return (
+        <MaterialIcons
+          color={color}
+          size={size}
+          name={iconName}
+          style={style}
+        />
+      );
+    case 'Foundation':
+      return (
+        <Foundation color={color} size={size} name={iconName} style={style} />
+      );
+    case 'Ionicons':
+      return (
+        <Ionicons color={color} size={size} name={iconName} style={style} />
+      );
+    default:
+      console.error(`Unsupported icon library: "${library}"`);
+      return null;
+  }
 }

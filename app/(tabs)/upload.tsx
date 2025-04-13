@@ -7,21 +7,23 @@ import {
   ScrollView,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getOrCreateUID } from '../../utils/uid';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function UploadScreen() {
   const [uid, setUid] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false); // Added loading state
+  const router = useRouter();
 
   useEffect(() => {
-    console.log('📲 HomeScreen mounted');
-
     getOrCreateUID()
       .then((generatedUid) => {
-        console.log('✅ UID successfully retrieved or created:', generatedUid);
         setUid(generatedUid);
       })
       .catch((err) => {
@@ -47,20 +49,26 @@ export default function UploadScreen() {
     });
 
     try {
+      setLoading(true); // Start loading
       const res = await axios.post(
-        'http://192.168.1.105:8000/api/receipt/',
+        'http://192.168.1.105:8000/api/receipt/upload/',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
         }
       );
-      debugger;
-      console.log('✅ Upload success:', res.data);
-      Alert.alert('הצלחה', `העלאה ה!!!!צליחה! ${res.data.files?.length || ''}`);
       setImages([]); // clear images after upload
+
+      await AsyncStorage.setItem(
+        'latestReceipt',
+        JSON.stringify(res.data.data)
+      );
+      router.push('/receiptScreen');
     } catch (err) {
       console.error('❌ Upload failed:', err);
       Alert.alert('שגיאה', 'שליחה נכשלה');
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -105,9 +113,14 @@ export default function UploadScreen() {
 
   return (
     <View style={styles.container}>
-      {images.length > 0 && (
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      )}
+      {!loading && images.length > 0 && (
         <TouchableOpacity style={styles.button} onPress={uploadImages}>
-          <Text style={styles.buttonText}>🚀 שלח תמונות</Text>
+          <Text style={styles.buttonText}>עבד קבלות</Text>
         </TouchableOpacity>
       )}
       <ScrollView style={styles.scrollView}>
@@ -169,6 +182,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 25,
   },
   buttonContainer: {
     flexDirection: 'column',
@@ -231,5 +247,15 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontSize: 16,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent background
   },
 });
