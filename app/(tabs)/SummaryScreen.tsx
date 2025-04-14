@@ -55,7 +55,7 @@ export default function SummaryScreen() {
     const fetchReceiptsFromServer = async () => {
       try {
         const response = await axios.get(
-          'http://192.168.1.105:8000/api/receipt/all/'
+          'http://51.84.97.33:8000/api/receipt/all/'
         );
         const receiptsFromServer: Receipt[] = response.data;
         await AsyncStorage.setItem(

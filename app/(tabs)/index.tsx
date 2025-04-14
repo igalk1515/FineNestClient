@@ -51,7 +51,7 @@ export default function UploadScreen() {
     try {
       setLoading(true); // Start loading
       const res = await axios.post(
-        'http://192.168.1.105:8000/api/receipt/upload/',
+        'http://51.84.97.33:8000/api/receipt/upload/',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },

@@ -127,9 +127,9 @@ export default function ReceiptScreen() {
     }
 
     const dataWithUid = { ...data, uid };
-
+    console.log('📤 Sending data:', dataWithUid);
     const res = await axios.post(
-      'http://192.168.1.105:8000/api/receipt/create/',
+      'http://51.84.97.33:8000/api/receipt/create/',
       dataWithUid,
       {
         headers: { 'Content-Type': 'application/json' },

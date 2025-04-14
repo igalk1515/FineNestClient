@@ -46,7 +46,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="upload"
+        name="index"
         options={{
           title: 'photograph',
           tabBarIcon: ({ color }) => (
