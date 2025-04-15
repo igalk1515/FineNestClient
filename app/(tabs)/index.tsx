@@ -66,7 +66,11 @@ export default function UploadScreen() {
       router.push('/receiptScreen');
     } catch (err) {
       console.error('❌ Upload failed:', err);
-      Alert.alert('שגיאה', 'שליחה נכשלה');
+      if (err instanceof Error) {
+        Alert.alert(err.message);
+      } else {
+        Alert.alert('An unknown error occurred');
+      }
     } finally {
       setLoading(false); // Stop loading
     }
