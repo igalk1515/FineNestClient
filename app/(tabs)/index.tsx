@@ -51,7 +51,7 @@ export default function UploadScreen() {
     try {
       setLoading(true); // Start loading
       const res = await axios.post(
-        'http://51.84.97.33:8000/api/receipt/upload/',
+        'https://finne-s.com/api/receipt/upload/',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
