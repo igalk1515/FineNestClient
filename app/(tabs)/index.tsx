@@ -50,6 +50,7 @@ export default function UploadScreen() {
 
     try {
       setLoading(true); // Start loading
+      console.log('📤 Uploading images...');
       const res = await axios.post(
         'https://finne-s.com/api/receipt/upload/',
         formData,
@@ -57,6 +58,8 @@ export default function UploadScreen() {
           headers: { 'Content-Type': 'multipart/form-data' },
         }
       );
+      console.log('✅ Upload successful:', res.data);
+
       setImages([]); // clear images after upload
 
       await AsyncStorage.setItem(
