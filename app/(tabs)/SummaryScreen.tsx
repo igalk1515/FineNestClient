@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import axios from 'axios';
+import { getOrCreateUID } from '../../utils/uid';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Receipt = {
   business_name: string;
@@ -45,43 +47,58 @@ const getRandomColor = (() => {
 export default function SummaryScreen() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
+  const [uid, setUid] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     dateRange: { start: '', end: '' },
     businessName: '',
     paymentMethod: '',
   });
 
-  useEffect(() => {
-    const fetchReceiptsFromServer = async () => {
-      try {
-        const response = await axios.get(
-          'https://finne-s.com/api/receipt/all/'
-        );
-        const receiptsFromServer: Receipt[] = response.data;
-        await AsyncStorage.setItem(
-          'allReceipts',
-          JSON.stringify(receiptsFromServer)
-        );
+  const fetchReceiptsFromServer = async () => {
+    try {
+      const response = await axios.get(
+        `https://finne-s.com/api/receipt/all/?uid=${uid}`
+      );
+      const receiptsFromServer: Receipt[] = response.data;
+      await AsyncStorage.setItem(
+        'allReceipts',
+        JSON.stringify(receiptsFromServer)
+      );
 
-        // Filter receipts for the current month
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const filteredForCurrentMonth = receiptsFromServer.filter((receipt) => {
-          const receiptDate = new Date(receipt.created_at);
-          return (
-            receiptDate.getMonth() === currentMonth &&
-            receiptDate.getFullYear() === currentYear
-          );
-        });
+      // Filter receipts for the current month
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const filteredForCurrentMonth = receiptsFromServer.filter((receipt) => {
+        const receiptDate = new Date(receipt.created_at);
+        return (
+          receiptDate.getMonth() === currentMonth &&
+          receiptDate.getFullYear() === currentYear
+        );
+      });
 
-        setReceipts(receiptsFromServer);
-        setFilteredReceipts(filteredForCurrentMonth);
-      } catch (err) {
-        console.error('❌ Failed to fetch receipts from server:', err);
+      setReceipts(receiptsFromServer);
+      setFilteredReceipts(filteredForCurrentMonth);
+    } catch (err) {
+      console.error('❌ Failed to fetch receipts from server:', err);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (uid) {
+        fetchReceiptsFromServer();
       }
-    };
+    }, [uid])
+  );
 
-    fetchReceiptsFromServer();
+  useEffect(() => {
+    getOrCreateUID()
+      .then((generatedUid) => {
+        setUid(generatedUid);
+      })
+      .catch((err) => {
+        console.error('❌ Error getting UID:', err);
+      });
   }, []);
 
   useEffect(() => {
